@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch"/>
+    <rosparam file="$(find euclidean_cluster)/param.yaml" command="load"/>
+    <node pkg="euclidean_cluster" type="euclidean_cluster_node" name="euclidean_cluster_node" output="screen"/>
+    <node pkg="pcl_test" type="pcl_test_node" name="pcl_test_node" output="screen" />
+    <node pkg="using_markers" type="points_and_lines" name="points_and_lines" output="screen"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find euclidean_cluster)/rviz/base_1.rviz"/>
+</launch>
