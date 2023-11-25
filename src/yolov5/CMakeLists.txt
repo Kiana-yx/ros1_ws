@@ -84,7 +84,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-catkin_install_python(PROGRAMS scripts/yolo_ros.py
+catkin_install_python(PROGRAMS scripts/yolo_ros.py scripts/yolo_seg.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
