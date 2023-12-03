@@ -46,7 +46,7 @@ class YOLOv5Seg:
                  iou_thres=0.45,  # NMS IOU threshold
                  max_det=1000,  # maximum detections per image
                  device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
-                 view_img=True,  # show results
+                 view_img=False,  # show results
                  save_txt=False,  # save results to *.txt
                  classes=0,  # filter by class: --class 0, or --class 0 2 3
                  agnostic_nms=False,  # class-agnostic NMS
@@ -88,8 +88,8 @@ class YOLOv5Seg:
         rospy.init_node('yolov5_seg')
         image_topic_1 = rospy.get_param('image_topic', '/camera/image')
         rospy.Subscriber(image_topic_1, Image, self.image_callback, queue_size=1, buff_size=52428800)
-        image_topic_2 = rospy.get_param('result_topic', '/result_topic')
-        image_pub = rospy.Publisher(image_topic_2, Image, queue_size=1)
+        image_topic_2 = rospy.get_param('result_topic', '/gray_image')
+        self.image_pub = rospy.Publisher(image_topic_2, Image, queue_size=1)
 
     @staticmethod
     def loadimg(img0, imgsz):  # 接受opencv原始图片
@@ -102,7 +102,7 @@ class YOLOv5Seg:
 
     def detect(self,im0):
         # Dataloader
-        global ros_image
+        global ros_image, mask_my
         self.dataset = self.loadimg(im0,self.imgsz)
         path = self.dataset[0]
         im = self.dataset[1]
@@ -127,6 +127,8 @@ class YOLOv5Seg:
             pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, self.classes, self.agnostic_nms,
                                        max_det=self.max_det, nm=32)
 
+        mask_my = np.zeros(im0.shape[:2], dtype=np.uint8)
+        
         # Process predictions
         for i, det in enumerate(pred):  # per image，实际只有一张照片
             # im0原始图像，im为转化后图像，在原始图像上绘制标签
@@ -157,6 +159,7 @@ class YOLOv5Seg:
                 image_gray = cv2.cvtColor(array, cv2.COLOR_GRAY2BGR)
                 # 将图像转为原始尺寸
                 image_ans = ops.scale_image(image_gray, im0.shape)
+                mask_my = cv2.cvtColor(image_ans, cv2.COLOR_BGR2GRAY)
 
                 # 展示图像
                 # cv2.imshow('image', image_ans)
@@ -172,11 +175,16 @@ class YOLOv5Seg:
             # Stream results
             im0 = annotator.result()
             if self.view_img:
+                # img1_bg = cv2.bitwise_and(im0, im0, mask=mask_my)
+                # cv2.imshow('image1', img1_bg)
                 cv2.imshow('str(p)', im0)
                 cv2.waitKey(1)  # 1 millisecond
 
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+        # 将灰度图像转换为 ROS 消息
+        gray_ros_msg = CvBridge().cv2_to_imgmsg(mask_my, encoding="mono8")
+        self.image_pub.publish(gray_ros_msg)
 
     def image_callback(self,image):
         global ros_image
