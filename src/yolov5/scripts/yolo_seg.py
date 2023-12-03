@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative，绝对路径转为相对路径
 
 from ultralytics.utils.plotting import Annotator, colors
+from ultralytics.utils import ops
 from utils.augmentations import letterbox
 
 from models.common import DetectMultiBackend
@@ -131,7 +132,7 @@ class YOLOv5Seg:
             # im0原始图像，im为转化后图像，在原始图像上绘制标签
             annotator = Annotator(im0, line_width=self.line_thickness, example=str(self.names))
             if len(det):
-                print(det)
+                # print(det)
                 # scale bbox first the crop masks
                 masks = process_mask(proto[i], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()  # rescale boxes to im0 size
@@ -146,6 +147,20 @@ class YOLOv5Seg:
                     masks,
                     colors=[colors(x, True) for x in det[:, 5]],
                     im_gpu=im[i])
+
+                masks = masks.cpu()
+                # 将Tensor的通道求和，仅识别人，故将所有通道数据相加
+                gray_tensor = masks.sum(dim=0)
+                # 将Tensor转换为NumPy数组，并进行数据范围调整
+                array = (gray_tensor * 255).byte().numpy()
+                # 创建灰度图像
+                image_gray = cv2.cvtColor(array, cv2.COLOR_GRAY2BGR)
+                # 将图像转为原始尺寸
+                image_ans = ops.scale_image(image_gray, im0.shape)
+
+                # 展示图像
+                # cv2.imshow('image', image_ans)
+                # cv2.waitKey(1)
 
                 # Write results
                 for j, (*xyxy, conf, cls) in enumerate(reversed(det[:, :6])):
