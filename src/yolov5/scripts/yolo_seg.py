@@ -184,6 +184,8 @@ class YOLOv5Seg:
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
         # 将灰度图像转换为 ROS 消息
         gray_ros_msg = CvBridge().cv2_to_imgmsg(mask_my, encoding="mono8")
+        gray_ros_msg.header.frame_id = "livox_frame"
+        gray_ros_msg.header.stamp = rospy.Time.now()
         self.image_pub.publish(gray_ros_msg)
 
     def image_callback(self,image):
