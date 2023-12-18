@@ -1,5 +1,17 @@
 # 安全距离监测项目代码汇总
 
+一站式调试：`roslaunch lidar test.launch`
+
+## lidar
+
+1. 点云图转深度图
+
+    rosrun lidar lidar_node
+
+2. 深度图叠加yolo结果
+    
+    rosrun lidar united
+
 ## yolov5
 
     yolo_ros.py:订阅相机数据，可视化识别结果

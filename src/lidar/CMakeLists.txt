@@ -40,11 +40,18 @@ link_directories(
 )
 
 add_executable(${PROJECT_NAME}_node src/lidar_node.cpp src/lidar_core.cpp)
+add_executable(united src/united_node.cpp)
 
 # 链接库
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+  ${OpenCV_INCLUDE_DIRS}
+)
+
+# 链接库
+target_link_libraries(united
+  ${catkin_LIBRARIES}
   ${OpenCV_INCLUDE_DIRS}
 )
 

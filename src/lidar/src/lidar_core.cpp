@@ -11,7 +11,7 @@ LidarCore::LidarCore(ros::NodeHandle &nh)
     getExtrinsic(extrinsic_path, extrinsic);
     sub_point_cloud_ = nh.subscribe("/livox/lidar", 10, &LidarCore::callback, this);
     pub_filtered_ = nh.advertise<sensor_msgs::PointCloud2>("/filtered_points", 10);
-    pub_depthImage_ = nh.advertise<sensor_msgs::Image>("/depth_image", 10);
+    pub_depthImage_ = nh.advertise<sensor_msgs::Image>("/depthImage", 10);
 
     // 程序到达ros::spin()之前按照一系列规则，设定一系列话题订阅者
     // ros::spin()使订阅者们可以开始接受话题，进入回调函数
@@ -92,20 +92,23 @@ void LidarCore::createDepth(int height, int width, const pcl::PointCloud<pcl::Po
         u < 0 ? u = 1 : u;
         v > height ? v = height - 1 : v;
         v < 0 ? v = 1 : v;
-        cout << u << " " << v << endl;
+        // DEBUG:输出计算结果
+        // cout << u << " " << v << endl;
         depth_map.at<float>(v, u) = depth_temp;
 
         ++myCount;
     }
-    cv::imshow("window", depth_map);
-    cv::waitKey(1);
-    // viewFalseColor(depth_map);
+    // DEBUG:可选直接查看原始深度图
+    // cv::imshow("window", depth_map);
+    // cv::waitKey(1);
+
+    // viewFalseColor(depth_map);//无用
     publish_image(pub_depthImage_, depth_map);
 }
 
 void LidarCore::publish_image(const ros::Publisher &in_publisher, const cv::Mat &image)
 {
-    sensor_msgs::ImagePtr imageMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+    sensor_msgs::ImagePtr imageMsg = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::TYPE_32FC1, image).toImageMsg();
     imageMsg->header.stamp = ros::Time::now(); // 当前时间戳
     imageMsg->header.frame_id = "livox_frame"; // 帧ID
     in_publisher.publish(imageMsg);
@@ -147,7 +150,7 @@ void LidarCore::changeFOV(const pcl::PointCloud<pcl::PointXYZI>::Ptr &in_cloud,
 
 void LidarCore::callback(const sensor_msgs::PointCloud2ConstPtr &in_cloud_ptr)
 {
-    ROS_INFO("lidar get!");
+    // ROS_INFO("lidar get!");
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>); // 存储二次初步滤波结果
 

@@ -1,0 +1,21 @@
+<launch>
+    <!-- 播放bag文件 -->
+    <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/Documents/data/bag/person_out"/>
+    
+    <!-- yolo节点 -->
+    <node name="yolo_seg" pkg="yolov5" type="yolo_seg.py" output="screen">  
+        <!-- 重映射话题名 -->
+        <remap from="/gray_image" to="/grayImage" />
+    </node>
+
+    <!-- 订阅点云，转为深度图 -->
+    <node pkg="lidar" type="lidar_node" name="lidar_node" output="screen">
+        <remap from="/depthImage" to="/depthImage" />
+    </node>
+    
+    <!-- 订阅深度图与mask图，反算点云 -->
+    <node pkg="lidar" type="united" name="united_node" output="screen"/>
+    
+    <!-- 可视化 -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lidar)/rviz/base1.rviz"/>
+</launch>
