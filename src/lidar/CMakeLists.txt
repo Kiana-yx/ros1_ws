@@ -52,6 +52,7 @@ target_link_libraries(${PROJECT_NAME}_node
 # 链接库
 target_link_libraries(united
   ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
   ${OpenCV_INCLUDE_DIRS}
 )
 
