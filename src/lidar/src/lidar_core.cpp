@@ -3,8 +3,18 @@
 
 LidarCore::LidarCore(ros::NodeHandle &nh)
 {
-    string intrinsic_path = "/home/kiana/Downloads/data/parameters/intrinsic.txt";
-    string extrinsic_path = "/home/kiana/Downloads/data/parameters/extrinsic.txt";
+    string intrinsic_path, extrinsic_path;
+    cout << "Get the parameters from the launch file" << endl;
+    if (!ros::param::get("intrinsic_path", intrinsic_path))
+    {
+        cout << "Can not get the value of intrinsic_path" << endl;
+        exit(1);
+    }
+    if (!ros::param::get("extrinsic_path", extrinsic_path))
+    {
+        cout << "Can not get the value of extrinsic_path" << endl;
+        exit(1);
+    }
 
     getIntrinsic(intrinsic_path, intrinsic);
     getDistortion(intrinsic_path, distortion);

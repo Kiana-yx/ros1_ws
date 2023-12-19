@@ -30,16 +30,32 @@ public:
 private:
     ros::NodeHandle nh;
     ros::Publisher pub_pcl_;
-    void computeInverseTransform(void);
-    void depthToPoint(const cv::Mat &depth_image);
+    void computeInverseTransform(void);            // 计算齐次变换矩阵逆矩阵inverseTransform，用于将深度图反算为雷达坐标系点云
+    void depthToPoint(const cv::Mat &depth_image); // 深度图转为点云图，并发布点云图
     void callback(const sensor_msgs::ImageConstPtr &depth_msg, const sensor_msgs::ImageConstPtr &mask_msg);
 
     // 构建逆矩阵
+    std::vector<float> extrinsic, intrinsic; // 读取传感器标定结果
     Matrix4d inverseTransform;
 };
 
+// 构造函数
 UnitedSensor::UnitedSensor(ros::NodeHandle &nh)
 {
+    string intrinsic_path, extrinsic_path;
+    if (!ros::param::get("extrinsic_path", extrinsic_path))
+    {
+        cout << "united_node: can not get the value of extrinsic_path" << endl;
+        exit(1);
+    }
+    if (!ros::param::get("intrinsic_path", intrinsic_path))
+    {
+        cout << "united_node: can not get the value of intrinsic_path" << endl;
+        exit(1);
+    }
+
+    getExtrinsic(extrinsic_path, extrinsic);
+    getIntrinsic(intrinsic_path, intrinsic);
     computeInverseTransform();
 
     message_filters::Subscriber<sensor_msgs::Image> sub_depth_(nh, "/depthImage", 1);
@@ -64,11 +80,6 @@ void UnitedSensor::computeInverseTransform()
 {
     inverseTransform.setIdentity(); // 初始化为单位矩阵
 
-    string extrinsic_path = "/home/kiana/Downloads/data/parameters/extrinsic.txt";
-
-    std::vector<float> extrinsic;
-    getExtrinsic(extrinsic_path, extrinsic);
-
     Matrix3d R;
     R << extrinsic[0], extrinsic[1], extrinsic[2],
         extrinsic[4], extrinsic[5], extrinsic[6],
@@ -92,14 +103,14 @@ void UnitedSensor::depthToPoint(const cv::Mat &depth_image)
         for (size_t u = 0; u < depth_image.cols; u++)
         {
             float d = depth_image.ptr<float>(v)[u];
-            if (d < 0.01 || d > 10)
-                continue;
+            // TODO:增加限制条件
+            //  if (d < 0.01 || d > 10)
+            //      continue;
 
-            // TODO:使用读取参数的方法
             double temp_x, temp_y, temp_z;
             temp_z = d;
-            temp_x = (u - 324.1569838209711) * d / 533.519;
-            temp_y = (v - 222.3341306960716) * d / 533.125;
+            temp_x = (u - intrinsic[2]) * d / intrinsic[0];
+            temp_y = (v - intrinsic[5]) * d / intrinsic[4];
 
             Eigen::Vector4d temp_vec;
             temp_vec << temp_x, temp_y, temp_z, 1.0; // 添加 1.0 作为第四个元素
@@ -127,8 +138,8 @@ void UnitedSensor::callback(const sensor_msgs::ImageConstPtr &depth_msg, const s
     cv_bridge::CvImagePtr cv_mask_ptr, cv_depth_ptr;
     try
     {
-        cv_mask_ptr = cv_bridge::toCvCopy(mask_msg, sensor_msgs::image_encodings::MONO8);
-        cv_depth_ptr = cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1);
+        cv_mask_ptr = cv_bridge::toCvCopy(mask_msg, sensor_msgs::image_encodings::MONO8);        // 灰度图使用MONO8
+        cv_depth_ptr = cv_bridge::toCvCopy(depth_msg, sensor_msgs::image_encodings::TYPE_32FC1); // 发布深度图采用TYPE_32FC1
     }
     catch (cv_bridge::Exception &e)
     {
@@ -147,7 +158,7 @@ void UnitedSensor::callback(const sensor_msgs::ImageConstPtr &depth_msg, const s
     cv::imshow("Combined Image", masked_depth);
     cv::waitKey(1);
 
-    depthToPoint(masked_depth);
+    depthToPoint(masked_depth); // 深度图转点云图并发布
 }
 
 int main(int argc, char **argv)

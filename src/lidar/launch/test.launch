@@ -1,4 +1,7 @@
 <launch>
+    <param name="intrinsic_path"        value="/home/kiana/Downloads/data/parameters/intrinsic.txt" />  <!-- intrinsic file -->
+    <param name="extrinsic_path"        value="/home/kiana/Downloads/data/parameters/extrinsic.txt" />  <!-- extrinsic file -->
+    
     <!-- 播放bag文件 -->
     <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/Documents/data/bag/person_out"/>
     

@@ -8,7 +8,7 @@
 
     rosrun lidar lidar_node
 
-2. 深度图叠加yolo结果
+2. 深度图叠加yolo结果，发布深度图
     
     rosrun lidar united
 
