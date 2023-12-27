@@ -64,7 +64,7 @@ void Frame::get_point(void)
 
 void Frame::marker_init(void)
 {
-    marker.header.frame_id = "velodyne";
+    marker.header.frame_id = "livox_frame";
     marker.header.stamp = ros::Time::now();
     marker.ns = "points_and_lines";
     marker.action = visualization_msgs::Marker::ADD;
@@ -107,9 +107,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::Publisher safety_pub_ = n.advertise<visualization_msgs::Marker>("safety_frame", 10);
 
-    ros::Rate r(10); //设置循环频率为10hz
-
-    
+    ros::Rate r(10); // 设置循环频率为10hz
 
     while (ros::ok())
     {
@@ -118,7 +116,7 @@ int main(int argc, char **argv)
         safety_frame.get_point();
         safety_frame.marker_init();
         safety_frame.paint();
-        
+
         safety_pub_.publish(safety_frame.marker);
 
         r.sleep();

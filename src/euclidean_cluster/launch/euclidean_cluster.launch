@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/record_bags/indoor.bag"/>
+    <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/Documents/data/bag/HAP/person_out.bag"/>
     <rosparam file="$(find euclidean_cluster)/param.yaml" command="load"/>
     <node pkg="pcl_test" type="pcl_test_node" name="pcl_test_node" output="screen" />
     <node pkg="euclidean_cluster" type="euclidean_cluster_node" name="euclidean_cluster_node" output="screen"/>

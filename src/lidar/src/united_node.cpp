@@ -111,9 +111,9 @@ void UnitedSensor::depthToPoint(const cv::Mat &depth_image)
         for (size_t u = 0; u < depth_image.cols; u++)
         {
             float d = depth_image.ptr<float>(v)[u];
-            // TODO:增加限制条件
-            //  if (d < 0.01 || d > 10)
-            //      continue;
+            // FIX:增加限制条件
+            if (d < 0.01 || d > 10)
+                continue;
 
             double temp_x, temp_y, temp_z;
             temp_z = d;
