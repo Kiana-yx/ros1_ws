@@ -195,7 +195,7 @@ void getExtrinsic(const string path, vector<float> &extrinsic)
 
     string lineStr;
     getline(inFile, lineStr);
-    for (uint i = 0; i < 3; ++i)
+    for (uint i = 0; i < 4; ++i) // 多读一行，判断最后一位是不是1
     {
         getline(inFile, lineStr);
         stringstream line(lineStr);

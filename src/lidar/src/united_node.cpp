@@ -56,6 +56,14 @@ UnitedSensor::UnitedSensor(ros::NodeHandle &nh)
 
     getExtrinsic(extrinsic_path, extrinsic);
     getIntrinsic(intrinsic_path, intrinsic);
+
+    // 增加校验环节
+    if (extrinsic[15] != 1 || intrinsic[8] != 1)
+    {
+        std::cout << "recheck the value of intrinsic or extrinsic" << std::endl;
+        std::cout << "extrinsic[15]:" << extrinsic[15] << std::endl;
+        std::cout << "intrinsic[8]" << intrinsic[8] << std::endl;
+    }
     computeInverseTransform();
 
     message_filters::Subscriber<sensor_msgs::Image> sub_depth_(nh, "/depthImage", 1);
@@ -157,6 +165,9 @@ void UnitedSensor::callback(const sensor_msgs::ImageConstPtr &depth_msg, const s
     // DEBUG：显示叠加后的深度图
     cv::imshow("Combined Image", masked_depth);
     cv::waitKey(1);
+
+    // DEBUG：显示原始深度图反算结果
+    // depthToPoint(cv_depth_ptr->image); // 深度图转点云图并发布
 
     depthToPoint(masked_depth); // 深度图转点云图并发布
 }

@@ -3,7 +3,7 @@
     <param name="extrinsic_path"        value="/home/kiana/Downloads/data/parameters/extrinsic.txt" />  <!-- extrinsic file -->
     
     <!-- 播放bag文件 -->
-    <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/Documents/data/bag/person_out"/>
+    <node pkg="rosbag" type="play" name="player" args="--clock -l /home/kiana/Documents/data/bag/HAP/person_out.bag"/>
     
     <!-- yolo节点 -->
     <node name="yolo_seg" pkg="yolov5" type="yolo_seg.py" output="screen">  

@@ -24,7 +24,6 @@ private:
     void publish_cloud(const ros::Publisher &in_publisher,
                        const pcl::PointCloud<pcl::PointXYZI>::Ptr in_cloud_to_publish_ptr,
                        const std_msgs::Header &in_header);
-    void viewFalseColor(cv::Mat &depth_map);
     void publish_image(const ros::Publisher &in_publisher, const cv::Mat &image);
 
     void getTheoreticalUV(float *theoryUV, const std::vector<float> &intrinsic, const std::vector<float> &extrinsic, double x, double y,

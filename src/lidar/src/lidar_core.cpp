@@ -34,23 +34,6 @@ void LidarCore::Spin()
 {
 }
 
-void LidarCore::viewFalseColor(cv::Mat &depth_map)
-{
-    cv::Mat depth_norm;
-    cv::normalize(depth_map, depth_norm, 0, 255, cv::NORM_MINMAX, CV_8U);
-
-    // 将归一化后的深度图转换为伪彩色图
-    cv::Mat depth_color;
-    cv::applyColorMap(depth_norm, depth_color, cv::COLORMAP_JET);
-
-    // 显示深度图和伪彩色图
-    cv::namedWindow("Depth Image", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Depth Image", depth_norm);
-    cv::namedWindow("Depth Color Map", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Depth Color Map", depth_color);
-    cv::waitKey(1);
-}
-
 // calculate theoretical U and V from x,y,z
 void LidarCore::getTheoreticalUV(float *theoryUV, const vector<float> &intrinsic, const vector<float> &extrinsic, double x, double y,
                                  double z)
@@ -77,6 +60,7 @@ void LidarCore::getTheoreticalUV(float *theoryUV, const vector<float> &intrinsic
 
     theoryUV[0] = u / depth;
     theoryUV[1] = v / depth;
+    theoryUV[2] = depth;
 }
 
 void LidarCore::createDepth(int height, int width, const pcl::PointCloud<pcl::PointXYZI>::Ptr &cloud_filtered)
@@ -84,15 +68,13 @@ void LidarCore::createDepth(int height, int width, const pcl::PointCloud<pcl::Po
     cv::Mat depth_map(height, width, CV_32F, cv::Scalar(0));
     float x, y, z;
     float depth_temp = 0;
-    float theoryUV[2] = {0, 0};
+    float theoryUV[3] = {0, 0};
     int myCount = 0;
     for (unsigned int i = 0; i < cloud_filtered->points.size(); i++)
     {
         x = cloud_filtered->points[i].x;
         y = cloud_filtered->points[i].y;
         z = cloud_filtered->points[i].z;
-
-        depth_temp = sqrt(x * x + y * y + z * z);
 
         getTheoreticalUV(theoryUV, intrinsic, extrinsic, x, y, z);
         int u = floor(theoryUV[0] + 0.5); // 四舍五入像素值
@@ -104,15 +86,39 @@ void LidarCore::createDepth(int height, int width, const pcl::PointCloud<pcl::Po
         v < 0 ? v = 1 : v;
         // DEBUG:输出计算结果
         // cout << u << " " << v << endl;
-        depth_map.at<float>(v, u) = depth_temp;
+        depth_map.at<float>(v, u) = theoryUV[2]; // 注意这里要用坐标变换后的深度值
 
         ++myCount;
     }
+
+    // DEBUG:自定义圆测试反算结果
+    //  for (unsigned int i = 0; i < 400; i++)
+    //  {
+    //      x = 10;
+    //      y = 1 * cos(2 * M_PI * i / 400.f) + 5;
+    //      z = 1 * sin(2 * M_PI * i / 400.f);
+
+    //     depth_temp = sqrt(x * x + y * y + z * z);
+
+    //     getTheoreticalUV(theoryUV, intrinsic, extrinsic, x, y, z);
+    //     int u = floor(theoryUV[0] + 0.5); // 四舍五入像素值
+    //     int v = floor(theoryUV[1] + 0.5);
+
+    //     u > width ? u = width - 1 : u;
+    //     u < 0 ? u = 1 : u;
+    //     v > height ? v = height - 1 : v;
+    //     v < 0 ? v = 1 : v;
+    //     // DEBUG:输出计算结果
+    //     // cout << u << " " << v << endl;
+    //     // depth_map.at<float>(v, u) = depth_temp;
+    //     depth_map.at<float>(v, u) = theoryUV[2];
+    //     ++myCount;
+    // }
+
     // DEBUG:可选直接查看原始深度图
     // cv::imshow("window", depth_map);
     // cv::waitKey(1);
 
-    // viewFalseColor(depth_map);//无用
     publish_image(pub_depthImage_, depth_map);
 }
 
@@ -150,8 +156,9 @@ void LidarCore::changeFOV(const pcl::PointCloud<pcl::PointXYZI>::Ptr &in_cloud,
             180 / M_PI);
 
         // 过滤点云数据，保留特定角度范围内的点
+        // DEBUG：使用z过滤地面，，，
         if (theta_yaw > yaw.first && theta_yaw < yaw.second && theta_pitch < pitch.second &&
-            theta_pitch > pitch.first && in_cloud->points[i].y < 15)
+            theta_pitch > pitch.first && in_cloud->points[i].z > -1.2)
         {
             cloud_filtered->push_back(in_cloud->points[i]);
         }
@@ -165,7 +172,7 @@ void LidarCore::callback(const sensor_msgs::PointCloud2ConstPtr &in_cloud_ptr)
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZI>); // 存储二次初步滤波结果
 
     pcl::fromROSMsg(*in_cloud_ptr, *cloud);
-    changeFOV(cloud, cloud_filtered, std::make_pair(60, 120), std::make_pair(-30, 45));
+    changeFOV(cloud, cloud_filtered, std::make_pair(-30, 40), std::make_pair(-30, 45));
     createDepth(480, 640, cloud_filtered);
 
     publish_cloud(pub_filtered_, cloud_filtered, in_cloud_ptr->header);

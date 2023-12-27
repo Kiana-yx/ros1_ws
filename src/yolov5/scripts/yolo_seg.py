@@ -36,17 +36,43 @@ from utils.segment.general import process_mask
 from utils.torch_utils import select_device, smart_inference_mode
 
 
+def get_intrinsic(path):
+    intrinsic = []
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        # 忽略第一行
+        for line in lines[1:4]:
+            values = line.split()
+            for val in values:
+                intrinsic.append(float(val))
+    return np.array(intrinsic).reshape(3, 3)
+
+
+def get_distortion(path):
+    distortion = []
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        # 忽略前6行
+        lines = lines[6:]
+
+        line_str = lines[0]
+        values = line_str.split()
+        for val in values:
+            distortion.append(float(val))
+    return np.array(distortion)
+
+
 class YOLOv5Seg:
 
     def __init__(self,
                  weights=ROOT / 'yolov5s-seg.pt',  # model.pt path(s)
                  data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
                  imgsz=(640, 480),  # inference size (height, width)
-                 conf_thres=0.25,  # confidence threshold
+                 conf_thres=0.6,  # confidence threshold
                  iou_thres=0.45,  # NMS IOU threshold
                  max_det=1000,  # maximum detections per image
                  device='',  # cuda device, i.e. 0 or 0,1,2,3 or cpu
-                 view_img=False,  # show results
+                 view_img=True,  #DEBUG: 叠加显示yolo结果
                  save_txt=False,  # save results to *.txt
                  classes=0,  # filter by class: --class 0, or --class 0 2 3
                  agnostic_nms=False,  # class-agnostic NMS
@@ -84,6 +110,16 @@ class YOLOv5Seg:
         self.dataset = None
         rospy.loginfo('Dataloader finished')
 
+
+        # 获取 intrinsic_path 参数值
+        intrinsic_path = rospy.get_param("intrinsic_path")
+        extrinsic_path = rospy.get_param("extrinsic_path")
+        if extrinsic_path is None:
+            print("Can not get the value of extrinsic_path")
+            exit(1)
+        
+        self.distortion = get_distortion(intrinsic_path)
+        self.intrinsic = get_intrinsic(intrinsic_path)
         #-----------------------------------------------------------------------------
         rospy.init_node('yolov5_seg')
         image_topic_1 = rospy.get_param('image_topic', '/camera/image')
@@ -181,7 +217,7 @@ class YOLOv5Seg:
                 cv2.waitKey(1)  # 1 millisecond
 
         # Print time (inference-only)
-        # DEBUG：输出识别结果（类型+时间）
+        # DEBUG：输出yolo识别结果（类型+时间）
         # LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
         # 将灰度图像转换为 ROS 消息
         gray_ros_msg = CvBridge().cv2_to_imgmsg(mask_my, encoding="mono8")
@@ -193,6 +229,7 @@ class YOLOv5Seg:
         global ros_image
         try:
             ros_image = CvBridge().imgmsg_to_cv2(image, "bgr8")
+            ros_image = cv2.undistort(ros_image, self.intrinsic, self.distortion)   #对原数据进行去畸变
         except CvBridgeError as e:
             print(e)
         with torch.no_grad():
